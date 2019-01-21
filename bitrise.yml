@@ -3,103 +3,212 @@ format_version: '5'
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: react-native
 trigger_map:
-- push_branch: "*"
-  workflow: primary
-- pull_request_source_branch: "*"
-  workflow: primary
-- tag: "*"
-  workflow: npm
+  - push_branch: master
+    workflow: Testing
+  - tag: "*"
+    workflow: Release
 workflows:
-  deploy:
+  Release:
     steps:
-    - activate-ssh-key@3.1.1:
-        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
-    - git-clone@4.0.11: {}
-    - script@1.1.5:
-        title: Do anything with Script step
-    - npm@0.9.1:
-        inputs:
-        - command: install
-    - install-missing-android-tools@2.1.1: {}
-    - android-build@0.9.4:
-        inputs:
-        - project_location: "$PROJECT_LOCATION"
-        - module: "$MODULE"
-        - variant: "$BUILD_VARIANT"
-    - certificate-and-profile-installer@1.9.3: {}
-    - xcode-archive@2.4.8:
-        inputs:
-        - project_path: "$BITRISE_PROJECT_PATH"
-        - scheme: "$BITRISE_SCHEME"
-        - export_method: "$BITRISE_EXPORT_METHOD"
-        - configuration: Release
-    - deploy-to-bitrise-io@1.3.12: {}
-  primary:
+      - activate-ssh-key@4.0.3:
+          title: Activate SSH Key
+          run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+      - git-clone@4.0.14:
+          title: Clone Repository
+      - cache-pull@2.0.1: {}
+      - script@1.1.5:
+          title: Unlink Node
+          inputs:
+            - content: brew unlink node@8
+      - brew-install@0.9.0:
+          title: Install Yarn
+          inputs:
+            - packages: yarn
+      - script@1.1.5:
+          title: Add NPM token
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -ex
+                echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+      - yarn@0.0.8:
+          title: Install Dependencies
+          inputs:
+            - command: install
+      - script@1.1.5:
+          title: React Native Eject
+          inputs:
+            - content: yarn react-native eject
+      - script@1.1.5:
+          title: React Native Link
+          inputs:
+            - content: yarn react-native link
+      - install-missing-android-tools@2.3.4:
+          title: Install Android Tools
+          inputs:
+            - gradlew_path: "$PROJECT_LOCATION/gradlew"
+      - android-build@0.9.5:
+          title: Build Android App
+          inputs:
+            - project_location: "$PROJECT_LOCATION"
+            - module: "$MODULE"
+            - variant: "$BUILD_VARIANT"
+      - sign-apk@1.2.4:
+          title: Sign APK
+      - ios-auto-provision@1.3.0:
+          title: Prepare IPA Signing
+          inputs:
+            - team_id: "$TEAM_ID"
+            - configuration: "$CONFIGURATION"
+            - distribution_type: "$DISTRIBUTION_TYPE"
+            - generate_profiles: 'yes'
+      - xcode-archive@2.4.19:
+          title: Build iOS App
+          inputs:
+            - project_path: "$BITRISE_PROJECT_PATH"
+            - scheme: "$BITRISE_SCHEME"
+            - export_method: "$DISTRIBUTION_TYPE"
+            - configuration: "$CONFIGURATION"
+      - deploy-to-bitrise-io@1.3.19:
+          title: Create Artifacts
+      - google-play-deploy@1.5.1:
+          inputs:
+            - package_name: "$PACKAGE_NAME"
+            - track: production
+            - service_account_json_key_path: "$BITRISEIO_GOOGLE_SERVICE_ACCOUNT_URL"
+      - slack@3.1.2:
+          inputs:
+            - channel: "$SLACK_CHANNEL"
+            - channel_on_error: "$SLACK_CHANNEL"
+            - buttons: |
+                View App|${BITRISE_APP_URL}
+                View Build|${BITRISE_BUILD_URL}
+                Google Play|https://play.google.com/apps/publish
+            - pretext: Your app is ready to be published!
+            - webhook_url: "$SLACK_WEB_HOOK"
+      - cache-push@2.0.5: {}
+    envs:
+      - opts:
+          is_expand: false
+        DISTRIBUTION_TYPE: app-store
+  Testing:
     steps:
-    - activate-ssh-key@3.1.1:
-        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
-    - git-clone@4.0.11: {}
-    - script@1.1.5:
-        title: Add NPM token
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            # fail if any commands fails
-            set -e
-            # debug log
-            set -x
-
-            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-    - yarn@0.0.7:
-        inputs:
-        - command: install
-        title: Yarn install
-    - yarn@0.0.7:
-        inputs:
-        - command: test
-    - deploy-to-bitrise-io@1.3.12: {}
-  npm:
-    steps:
-    - activate-ssh-key@3.1.1:
-        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
-    - git-clone@4.0.11: {}
-    - script@1.1.5:
-        title: Add NPM token
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            # fail if any commands fails
-            set -e
-            # debug log
-            set -x
-
-            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-    - yarn@0.0.7:
-        inputs:
-        - command: install
-        title: Yarn install
-    - yarn@0.0.7:
-        inputs:
-        - command: test
-    - npm@0.9.1:
-        inputs:
-        - command: publish
-        title: Publish to NPM
-    - deploy-to-bitrise-io@1.3.12: {}
+      - activate-ssh-key@4.0.3:
+          title: Activate SSH Key
+          run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+      - git-clone@4.0.14:
+          title: Clone Repository
+      - cache-pull@2.0.1: {}
+      - script@1.1.5:
+          title: Unlink Node
+          inputs:
+            - content: brew unlink node@8
+      - brew-install@0.9.0:
+          title: Install Yarn
+          inputs:
+            - packages: yarn
+      - script@1.1.5:
+          title: Add NPM token
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -ex
+                echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+      - yarn@0.0.8:
+          title: Install Dependencies
+          inputs:
+            - command: install
+      - yarn@0.0.7:
+          title: Run Tests
+          inputs:
+            - command: test
+      - script@1.1.5:
+          title: React Native Eject
+          inputs:
+            - content: yarn react-native eject
+      - script@1.1.5:
+          title: React Native Link
+          inputs:
+            - content: yarn react-native link
+      - install-missing-android-tools@2.3.5:
+          title: Install Android Tools
+          inputs:
+            - gradlew_path: "$PROJECT_LOCATION/gradlew"
+      - android-build@0.9.5:
+          title: Build Android App
+          inputs:
+            - project_location: "$PROJECT_LOCATION"
+            - module: "$MODULE"
+            - variant: "$BUILD_VARIANT"
+      - sign-apk@1.2.4:
+          title: Sign APK
+      - ios-auto-provision@1.3.0:
+          title: Prepare IPA Signing
+          inputs:
+            - team_id: "$TEAM_ID"
+            - configuration: ''
+            - distribution_type: "$DISTRIBUTION_TYPE"
+            - generate_profiles: 'yes'
+      - xcode-archive@2.4.19:
+          title: Build iOS App
+          inputs:
+            - project_path: "$BITRISE_PROJECT_PATH"
+            - scheme: "$BITRISE_SCHEME"
+            - export_method: "$DISTRIBUTION_TYPE"
+            - configuration: Release
+      - deploy-to-bitrise-io@1.3.19:
+          title: Create Artifacts
+      - script:
+          title: Rename Android & iOS Artifacts
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -ex
+                if [ -z "$BITRISE_GIT_MESSAGE" ]
+                # Make sure there are no forward slashes in file names
+                ESCAPED_MESSAGE=${BITRISE_GIT_MESSAGE/\//-}
+                then
+                    apk_path="${BITRISE_DEPLOY_DIR}/"$BITRISEIO_GIT_REPOSITORY_SLUG".apk"
+                    ipa_path="${BITRISE_DEPLOY_DIR}/"$BITRISEIO_GIT_REPOSITORY_SLUG".ipa"
+                else
+                    apk_path="${BITRISE_DEPLOY_DIR}/"$BITRISEIO_GIT_REPOSITORY_SLUG" ("$ESCAPED_MESSAGE").apk"
+                    ipa_path="${BITRISE_DEPLOY_DIR}/"$BITRISEIO_GIT_REPOSITORY_SLUG" ("$ESCAPED_MESSAGE").ipa"
+                fi
+                mv "$BITRISE_APK_PATH" "$apk_path"
+                mv "$BITRISE_IPA_PATH" "$ipa_path"
+                envman add --key BITRISE_APK_PATH --value "$apk_path"
+                envman add --key BITRISE_IPA_PATH --value "$ipa_path"
+      - script:
+          title: Upload Android & iOS Apps to BrowserStack
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -ex
+                curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" -X POST https://api-cloud.browserstack.com/app-live/upload -F "file=@$BITRISE_IPA_PATH"
+                curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" -X POST https://api-cloud.browserstack.com/app-live/upload -F "file=@$BITRISE_APK_PATH"
+      - slack@3.1.2:
+          inputs:
+            - channel: "$SLACK_CHANNEL"
+            - channel_on_error: "$SLACK_CHANNEL"
+            - buttons: |
+                View App|${BITRISE_APP_URL}
+                View Build|${BITRISE_BUILD_URL}
+                BrowserStack|https://app-live.browserstack.com
+            - pretext: Your app is ready to be tested!
+            - webhook_url: "$SLACK_WEB_HOOK"
+      - cache-push@2.0.5: {}
+    envs:
+      - opts:
+          is_expand: false
+        DISTRIBUTION_TYPE: development
 app:
   envs:
-  - opts:
-      is_expand: false
-    GRADLE_BUILD_FILE_PATH: android/build.gradle
-  - opts:
-      is_expand: false
-    GRADLEW_PATH: android/gradlew
-  - opts:
-      is_expand: false
-    BITRISE_PROJECT_PATH: ios/mybundle.xcodeproj
-  - opts:
-      is_expand: false
-    BITRISE_SCHEME: mybundle
-  - opts:
-      is_expand: false
-    BITRISE_EXPORT_METHOD: ad-hoc
+    - opts:
+        is_expand: false
+      PROJECT_LOCATION: android
+    - opts:
+        is_expand: false
+      MODULE: app
+    - opts:
+        is_expand: false
+      CONFIGURATION: Release
