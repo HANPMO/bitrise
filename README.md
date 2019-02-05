@@ -227,6 +227,3 @@ which allows us to use the artifacts in other steps later on.)
 
 When a build has succeeded, the resulting artifacts will automatically be uploaded
 to BrowserStack.
-
-(This is a WIP, could not be tested yet. Two options, you can either upload them manually, see [App Live REST API](https://www.browserstack.com/app-live/rest-api), or you can make use of [BrowserStack Upload](https://app.bitrise.io/integrations/steps/browserstack-upload), which might only work for automated testing, not for live testing.)
-
