@@ -35,14 +35,9 @@ workflows:
           inputs:
             - command: install
       - script:
-          title: React Native Eject
-          inputs:
-            - content: yarn react-native eject
-      - script:
           title: React Native Link
           inputs:
             - content: yarn react-native link
-          is_always_run: true
       - install-missing-android-tools:
           title: Install Android Tools
           inputs:
@@ -122,14 +117,9 @@ workflows:
           inputs:
             - command: test
       - script:
-          title: React Native Eject
-          inputs:
-            - content: yarn react-native eject
-      - script:
           title: React Native Link
           inputs:
             - content: yarn react-native link
-          is_always_run: true
       - install-missing-android-tools:
           title: Install Android Tools
           inputs:
