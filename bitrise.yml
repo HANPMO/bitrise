@@ -34,6 +34,9 @@ workflows:
           title: Install Dependencies
           inputs:
             - command: install
+      - cocoapods-install:
+          inputs:
+            - source_root_path: "$BITRISE_SOURCE_DIR/ios"
       - script:
           title: React Native Link
           inputs:
@@ -42,6 +45,9 @@ workflows:
           title: Install Android Tools
           inputs:
             - gradlew_path: "$PROJECT_LOCATION/gradlew"
+      - change-android-versioncode-and-versionname:
+          inputs:
+            - build_gradle_path: "$BITRISE_SOURCE_DIR/android/app/build.gradle"
       - android-build:
           title: Build Android App
           inputs:
@@ -116,6 +122,9 @@ workflows:
           title: Run Tests
           inputs:
             - command: test
+      - cocoapods-install:
+          inputs:
+            - source_root_path: "$BITRISE_SOURCE_DIR/ios"
       - script:
           title: React Native Link
           inputs:
@@ -124,7 +133,9 @@ workflows:
           title: Install Android Tools
           inputs:
             - gradlew_path: "$PROJECT_LOCATION/gradlew"
-      - change-android-versioncode-and-versionname: {}
+      - change-android-versioncode-and-versionname:
+          inputs:
+            - build_gradle_path: "$BITRISE_SOURCE_DIR/android/app/build.gradle"
       - android-build:
           title: Build Android App
           inputs:
