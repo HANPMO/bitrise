@@ -5,8 +5,6 @@ project_type: react-native
 trigger_map:
   - push_branch: master
     workflow: TestingAndroid
-  - push_branch: master
-    workflow: TestingIos
   - tag: "*"
     workflow: Release
 workflows:

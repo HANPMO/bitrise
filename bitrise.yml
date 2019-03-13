@@ -5,8 +5,6 @@ project_type: react-native
 trigger_map:
   - push_branch: master
     workflow: TestingAndroid
-  - push_branch: master
-    workflow: TestingIos
   - tag: "*"
     workflow: Release
 workflows:
@@ -118,7 +116,7 @@ workflows:
       - yarn:
           title: Install Dependencies
           inputs:
-            - args: ''
+            - args: "--pure-lockfile"
             - command: install
       - yarn:
           title: Run Tests
