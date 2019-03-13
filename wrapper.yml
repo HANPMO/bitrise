@@ -4,7 +4,9 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: react-native
 trigger_map:
   - push_branch: master
-    workflow: Testing
+    workflow: TestingAndroid
+  - push_branch: master
+    workflow: TestingIos
   - tag: "*"
     workflow: Release
 workflows:
@@ -24,7 +26,10 @@ workflows:
                 #!/bin/bash
                 set -ex
                 bitrise run "${BITRISE_TRIGGERED_WORKFLOW_ID}"
-  Testing:
+  TestingIos:
+    after_run:
+      - _run_from_repo
+  TestingAndroid:
     after_run:
       - _run_from_repo
   Release:
