@@ -34,6 +34,10 @@ workflows:
           title: Install Dependencies
           inputs:
             - command: install
+      - yarn:
+          inputs:
+            - command: bundle-Bundle eject app
+          title: Bundle Bundle eject app
       - cocoapods-install:
           inputs:
             - source_root_path: "$BITRISE_SOURCE_DIR/ios"
@@ -99,7 +103,7 @@ workflows:
           title: Unlink Node
           inputs:
             - content: brew unlink node@8
-      - nvm@1.2.2:
+      - nvm:
           inputs:
             - node_version: 8.11.3
       - brew-install:
@@ -118,6 +122,11 @@ workflows:
           inputs:
             - args: "--pure-lockfile"
             - command: install
+      - yarn:
+          title: Bundle eject app
+          inputs:
+            - args: "app"
+            - command: bundle-eject
       - yarn:
           title: Run Tests
           inputs:
@@ -133,47 +142,13 @@ workflows:
       - change-android-versioncode-and-versionname:
           inputs:
             - build_gradle_path: "$BITRISE_SOURCE_DIR/android/app/build.gradle"
-      - android-build:
-          title: Build Android App
+      - fastlane:
           inputs:
-            - project_location: "$PROJECT_LOCATION"
-            - module: "$MODULE"
-            - variant: "$BUILD_VARIANT"
-      - sign-apk:
-          title: Sign APK
-      - script:
-          title: Rename APK
+            - lane: add_plugin browserstack
+          title: Add browserstack plugin
+      - fastlane:
           inputs:
-            - content: |-
-                #!/usr/bin/env bash
-                set -ex
-                if [ -z "$BITRISE_GIT_MESSAGE" ]
-                # Make sure there are no forward slashes in file names
-                ESCAPED_MESSAGE=${BITRISE_GIT_MESSAGE/\//-}
-                then
-                    apk_path="${BITRISE_DEPLOY_DIR}/"$BITRISEIO_GIT_REPOSITORY_SLUG".apk"
-                else
-                    apk_path="${BITRISE_DEPLOY_DIR}/"$BITRISEIO_GIT_REPOSITORY_SLUG" ("$ESCAPED_MESSAGE").apk"
-                fi
-                mv "$BITRISE_APK_PATH" "$apk_path"
-                envman add --key BITRISE_APK_PATH --value "$apk_path"
-      - script:
-          title: Upload APK to BrowserStack
-          inputs:
-            - content: |-
-                #!/usr/bin/env bash
-                set -ex
-                curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" -X POST https://api-cloud.browserstack.com/app-live/upload -F "file=@$BITRISE_APK_PATH"
-      - slack:
-          inputs:
-            - channel: "$SLACK_CHANNEL"
-            - channel_on_error: "$SLACK_CHANNEL"
-            - buttons: |
-                View App|${BITRISE_APP_URL}
-                View Build|${BITRISE_BUILD_URL}
-                BrowserStack|https://app-live.browserstack.com
-            - pretext: Your Android app is ready to be tested!
-            - webhook_url: "$SLACK_WEB_HOOK"
+            - lane: android build_browserstack
     envs:
       - opts:
           is_expand: false
@@ -185,7 +160,7 @@ workflows:
           run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
       - git-clone:
           title: Clone Repository
-      - nvm@1.2.2:
+      - nvm:
           inputs:
             - node_version: 8.11.3
       - brew-install:
@@ -204,6 +179,11 @@ workflows:
           inputs:
             - args: "--pure-lockfile"
             - command: install
+      - yarn:
+          title: Bundle eject app
+          inputs:
+            - args: "app"
+            - command: bundle-eject
       - yarn:
           title: Run Tests
           inputs:
@@ -221,11 +201,12 @@ workflows:
             - team_id: "$TEAM_ID"
             - configuration: ''
             - distribution_type: "$DISTRIBUTION_TYPE"
+            - project_path: "$BITRISE_WORKSPACE_PATH"
             - generate_profiles: 'yes'
       - xcode-archive:
           title: Build iOS App
           inputs:
-            - project_path: "$BITRISE_PROJECT_PATH"
+            - project_path: "$BITRISE_WORKSPACE_PATH"
             - scheme: "$BITRISE_SCHEME"
             - export_method: "$DISTRIBUTION_TYPE"
             - configuration: Release
